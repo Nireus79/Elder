@@ -423,7 +423,7 @@ def limit_manager(mode, high, mid, low, cond, max_rsi):
                 break
 
 
-def elderbot(mode, crypto_currency, fiat_currency, depth, max_rsi):
+def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
     """
     Custom, real time, multiple time frame, consulting-trading bot application,
     interpretation of Alexander Elder's "triple screen" forex market trading strategy.
@@ -502,6 +502,7 @@ def elderbot(mode, crypto_currency, fiat_currency, depth, max_rsi):
                     waits 5min.
             else: (all high frames trend is negative)
                 order_manager() kicks in to sell on 15minute low frame.
+    :param frames: screen frames
     :param max_rsi: maximum rsi in mid-frame
     :param mode: trading / consulting
     :param crypto_currency: the crypto asset to be traded
@@ -510,7 +511,7 @@ def elderbot(mode, crypto_currency, fiat_currency, depth, max_rsi):
     """
     global condition, log, trend_24h, trend_4h, buy_flag_4h, buy_flag_1h, sell_flag_4h, sell_flag_1h, \
         crypto_balance, fiat_balance, closing_price, runningHighFrame, runningMidFrame, runningLowFrame
-    licence = True  # check()['license_active']
+    licence = check()['license_active']
     # TODO activate licence check
     if licence:
         log = 'Your product licence is active. Thank you for using Hermes.'
@@ -518,6 +519,7 @@ def elderbot(mode, crypto_currency, fiat_currency, depth, max_rsi):
         logs.append(log + '<br>')
         if mode == 'simulator':
             condition = 'buy'
+        iw = Api(crypto_currency, fiat_currency, 10080, depth)
         i24h = Api(crypto_currency, fiat_currency, 1440, depth)
         i4h = Api(crypto_currency, fiat_currency, 240, depth)
         i1h = Api(crypto_currency, fiat_currency, 60, depth)
@@ -532,187 +534,188 @@ def elderbot(mode, crypto_currency, fiat_currency, depth, max_rsi):
                 logging.info(log)
                 logs.append(log + '<br>')
                 break
-            i24h_frame = i24h.get_frame()
-            i4h_frame = i4h.get_frame()
-            i1h_frame = i1h.get_frame()
-            i15m_frame = i15m.get_frame()
-            high_frame_24h = high_frame_indicators(i24h_frame)
-            high_frame_4h = high_frame_indicators(i4h_frame)
-            mid_frame_4h = mid_frame_indicators(i4h_frame, max_rsi)
-            mid_frame_1h = mid_frame_indicators(i1h_frame, max_rsi)
-            closing_price = high_frame_24h.iloc[-1]['close']
-            trend_24h = high_frame_24h.iloc[-1]['trend']
-            trend_4h = high_frame_4h.iloc[-1]['trend']
-            negative_momentum24h = high_frame_24h.iloc[-1]['negative momentum']
-            negative_momentum4h = high_frame_4h.iloc[-1]['negative momentum']
-            buy_flag_4h = mid_frame_4h.iloc[-1]['buy flag']
-            sell_flag_4h = mid_frame_4h.iloc[-1]['sell flag']
-            buy_flag_1h = mid_frame_1h.iloc[-1]['buy flag']
-            sell_flag_1h = mid_frame_1h.iloc[-1]['sell flag']
-            if mode == 'consulting' or mode == 'trading':
-                condition, crypto_balance, fiat_balance = get_condition(crypto_currency, fiat_currency, closing_price)
-            log = '{} Condition is {}.'.format(time_stamp(time.time()), condition)
-            logging.info(log)
-            logs.append(log + '<br>')
-            if condition == 'buy':
-                if trend_24h:
-                    log = '{} 24hour trend is {}'.format(time_stamp(time.time()), trend_24h)
-                    logging.info(log)
-                    logs.append(log + '<br>')
-                    runningHighFrame = '24Hour'
-                    runningMidFrame = '4Hour'
-                    runningLowFrame = '1Hour'
-                    chart_data(high_frame_24h, mid_frame_4h, low_frame_indicators(i1h_frame))
-                    if negative_momentum24h:
-                        log = '{} 24hour momentum is weak. No buying opportunity. Wait 1 min.' \
-                            .format(time_stamp(time.time()))
-                        logging.info(log)
-                        logs.append(log + '<br>')
-                        time.sleep(60)
-                    else:
-                        if buy_flag_4h:
-                            log = '{} 4hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_4h)
-                            logging.info(log)
-                            logs.append(log + '<br>')
-                            if mode == 'trading':
-                                order_manager('market', i24h, i4h, i1h, condition,
-                                              crypto_currency, fiat_currency, max_rsi)
-                            elif mode == 'consulting' or mode == 'simulator':
-                                limit_manager(mode, i24h, i4h, i1h, condition, max_rsi)
-                        else:
-                            log = '{} 4hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_4h)
-                            logging.info(log)
-                            logs.append(log + '<br>')
-                            if trend_4h:
-                                log = '{} 4hour trend is {}.'.format(time_stamp(time.time()), trend_4h)
-                                logging.info(log)
-                                logs.append(log + '<br>')
-                                runningHighFrame = '4Hour'
-                                runningMidFrame = '1Hour'
-                                runningLowFrame = '15minutes'
-                                chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
-                                if negative_momentum4h:
-                                    log = '{} 4hour momentum is weak. No buying opportunity. Wait 1 min.' \
-                                        .format(time_stamp(time.time()))
-                                    logging.info(log)
-                                    logs.append(log + '<br>')
-                                    time.sleep(60)
-                                else:
-                                    if buy_flag_1h:
-                                        log = '{} 1hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_1h)
-                                        logging.info(log)
-                                        logs.append(log + '<br>')
-                                        if mode == 'trading':
-                                            order_manager('market', i4h, i1h, i15m, condition,
-                                                          crypto_currency, fiat_currency, max_rsi)
-                                        elif mode == 'consulting' or mode == 'zero':
-                                            limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
-                                    else:
-                                        log = '{} 1hour momentum is {}. Wait 1 min.' \
-                                            .format(time_stamp(time.time()), buy_flag_1h)
-                                        logging.info(log)
-                                        logs.append(log + '<br>')
-                                        time.sleep(60)
-                            else:
-                                log = '{} 4hour trend is {}. No buying opportunity. Wait 1 min.'\
-                                    .format(time_stamp(time.time()), buy_flag_4h)
-                                logging.info(log)
-                                logs.append(log + '<br>')
-                                time.sleep(60)
-                elif trend_4h:
-                    log = '{} 4hour trend is {}.'.format(time_stamp(time.time()), trend_4h)
-                    logging.info(log)
-                    logs.append(log + '<br>')
-                    runningHighFrame = '4Hour'
-                    runningMidFrame = '1Hour'
-                    runningLowFrame = '15minutes'
-                    chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
-                    if negative_momentum4h:
-                        log = '{} 4hour momentum is weak. No buying opportunity. Wait 1 min.' \
-                            .format(time_stamp(time.time()))
-                        logging.info(log)
-                        logs.append(log + '<br>')
-                        time.sleep(60)
-                    else:
-                        if buy_flag_1h:
-                            log = '{} 1hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_1h)
-                            logging.info(log)
-                            logs.append(log + '<br>')
-                            if mode == 'trading':
-                                order_manager('market', i4h, i1h, i15m, condition,
-                                              crypto_currency, fiat_currency, max_rsi)
-                            elif mode == 'consulting' or mode == 'simulator':
-                                limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
-                        else:
-                            log = '{} 1hour momentum is {}. Wait 1 min'.format(time_stamp(time.time()), buy_flag_1h)
-                            logging.info(log)
-                            logs.append(log + '<br>')
-                            time.sleep(60)
-                else:
-                    log = '{} All trend frames negative. No buying opportunity. Wait 5 min.' \
-                        .format(time_stamp(time.time()))
-                    logging.info(log)
-                    logs.append(log + '<br>')
-                    runningHighFrame = '4Hour'
-                    runningMidFrame = '1Hour'
-                    runningLowFrame = '15minutes'
-                    chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
-                    time.sleep(300)
-            elif condition == 'sell':
-                if trend_24h:
-                    log = '{} 24hour trend is {}.'.format(time_stamp(time.time()), trend_24h)
-                    logging.info(log)
-                    logs.append(log + '<br>')
-                    runningHighFrame = '24Hour'
-                    runningMidFrame = '4Hour'
-                    runningLowFrame = '1Hour'
-                    chart_data(high_frame_24h, mid_frame_4h, low_frame_indicators(i1h_frame))
-                    if sell_flag_4h:
-                        log = '{} 4hour sell flag is {}.'.format(time_stamp(time.time()), sell_flag_4h)
-                        logging.info(log)
-                        logs.append(log + '<br>')
-                        if mode == 'trading':
-                            order_manager('market', i24h, i4h, i1h, condition, crypto_currency, fiat_currency, max_rsi)
-                        elif mode == 'consulting' or mode == 'simulator':
-                            limit_manager(mode, i24h, i4h, i1h, condition, max_rsi)
-                    else:
-                        log = '{} 4hour sell flag is {}. Wait 1 minute.'.format(time_stamp(time.time()), sell_flag_4h)
-                        logging.info(log)
-                        logs.append(log + '<br>')
-                        time.sleep(60)
-                elif trend_4h:
-                    log = '{} 4hour trend is {}.'.format(time_stamp(time.time()), trend_4h)
-                    logging.info(log)
-                    logs.append(log + '<br>')
-                    runningHighFrame = '4Hour'
-                    runningMidFrame = '1Hour'
-                    runningLowFrame = '15minutes'
-                    chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
-                    if sell_flag_1h:
-                        log = '{} 1hour sell flag is {}.'.format(time_stamp(time.time()), sell_flag_1h)
-                        logging.info(log)
-                        logs.append(log + '<br>')
-                        if mode == 'trading':
-                            order_manager('market', i4h, i1h, i15m, condition, crypto_currency, fiat_currency, max_rsi)
-                        elif mode == 'consulting' or mode == 'simulator':
-                            limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
-                    else:
-                        log = '{} 1hour sell flag is {}. Wait 1 minute.'.format(time_stamp(time.time()), sell_flag_1h)
-                        logging.info(log)
-                        logs.append(log + '<br>')
-                        time.sleep(60)
-                else:
-                    log = '{} All high-frame trends are negative.'.format(time_stamp(time.time()))
-                    logging.info(log)
-                    logs.append(log + '<br>')
-                    runningHighFrame = '4Hour'
-                    runningMidFrame = '1Hour'
-                    runningLowFrame = '15minutes'
-                    chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
-                    if mode == 'trading':
-                        order_manager('market', i4h, i1h, i15m, condition, crypto_currency, fiat_currency, max_rsi)
-                    elif mode == 'consulting' or mode == 'simulator':
-                        limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
+
+            # i24h_frame = i24h.get_frame()
+            # i4h_frame = i4h.get_frame()
+            # i1h_frame = i1h.get_frame()
+            # i15m_frame = i15m.get_frame()
+            # high_frame_24h = high_frame_indicators(i24h_frame)
+            # high_frame_4h = high_frame_indicators(i4h_frame)
+            # mid_frame_4h = mid_frame_indicators(i4h_frame, max_rsi)
+            # mid_frame_1h = mid_frame_indicators(i1h_frame, max_rsi)
+            # closing_price = high_frame_24h.iloc[-1]['close']
+            # trend_24h = high_frame_24h.iloc[-1]['trend']
+            # trend_4h = high_frame_4h.iloc[-1]['trend']
+            # negative_momentum24h = high_frame_24h.iloc[-1]['negative momentum']
+            # negative_momentum4h = high_frame_4h.iloc[-1]['negative momentum']
+            # buy_flag_4h = mid_frame_4h.iloc[-1]['buy flag']
+            # sell_flag_4h = mid_frame_4h.iloc[-1]['sell flag']
+            # buy_flag_1h = mid_frame_1h.iloc[-1]['buy flag']
+            # sell_flag_1h = mid_frame_1h.iloc[-1]['sell flag']
+            # if mode == 'consulting' or mode == 'trading':
+            #     condition, crypto_balance, fiat_balance = get_condition(crypto_currency, fiat_currency, closing_price)
+            # log = '{} Condition is {}.'.format(time_stamp(time.time()), condition)
+            # logging.info(log)
+            # logs.append(log + '<br>')
+            # if condition == 'buy':
+            #     if trend_24h:
+            #         log = '{} 24hour trend is {}'.format(time_stamp(time.time()), trend_24h)
+            #         logging.info(log)
+            #         logs.append(log + '<br>')
+            #         runningHighFrame = '24Hour'
+            #         runningMidFrame = '4Hour'
+            #         runningLowFrame = '1Hour'
+            #         chart_data(high_frame_24h, mid_frame_4h, low_frame_indicators(i1h_frame))
+            #         if negative_momentum24h:
+            #             log = '{} 24hour momentum is weak. No buying opportunity. Wait 1 min.' \
+            #                 .format(time_stamp(time.time()))
+            #             logging.info(log)
+            #             logs.append(log + '<br>')
+            #             time.sleep(60)
+            #         else:
+            #             if buy_flag_4h:
+            #                 log = '{} 4hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_4h)
+            #                 logging.info(log)
+            #                 logs.append(log + '<br>')
+            #                 if mode == 'trading':
+            #                     order_manager('market', i24h, i4h, i1h, condition,
+            #                                   crypto_currency, fiat_currency, max_rsi)
+            #                 elif mode == 'consulting' or mode == 'simulator':
+            #                     limit_manager(mode, i24h, i4h, i1h, condition, max_rsi)
+            #             else:
+            #                 log = '{} 4hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_4h)
+            #                 logging.info(log)
+            #                 logs.append(log + '<br>')
+            #                 if trend_4h:
+            #                     log = '{} 4hour trend is {}.'.format(time_stamp(time.time()), trend_4h)
+            #                     logging.info(log)
+            #                     logs.append(log + '<br>')
+            #                     runningHighFrame = '4Hour'
+            #                     runningMidFrame = '1Hour'
+            #                     runningLowFrame = '15minutes'
+            #                     chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
+            #                     if negative_momentum4h:
+            #                         log = '{} 4hour momentum is weak. No buying opportunity. Wait 1 min.' \
+            #                             .format(time_stamp(time.time()))
+            #                         logging.info(log)
+            #                         logs.append(log + '<br>')
+            #                         time.sleep(60)
+            #                     else:
+            #                         if buy_flag_1h:
+            #                             log = '{} 1hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_1h)
+            #                             logging.info(log)
+            #                             logs.append(log + '<br>')
+            #                             if mode == 'trading':
+            #                                 order_manager('market', i4h, i1h, i15m, condition,
+            #                                               crypto_currency, fiat_currency, max_rsi)
+            #                             elif mode == 'consulting' or mode == 'zero':
+            #                                 limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
+            #                         else:
+            #                             log = '{} 1hour momentum is {}. Wait 1 min.' \
+            #                                 .format(time_stamp(time.time()), buy_flag_1h)
+            #                             logging.info(log)
+            #                             logs.append(log + '<br>')
+            #                             time.sleep(60)
+            #                 else:
+            #                     log = '{} 4hour trend is {}. No buying opportunity. Wait 1 min.'\
+            #                         .format(time_stamp(time.time()), buy_flag_4h)
+            #                     logging.info(log)
+            #                     logs.append(log + '<br>')
+            #                     time.sleep(60)
+            #     elif trend_4h:
+            #         log = '{} 4hour trend is {}.'.format(time_stamp(time.time()), trend_4h)
+            #         logging.info(log)
+            #         logs.append(log + '<br>')
+            #         runningHighFrame = '4Hour'
+            #         runningMidFrame = '1Hour'
+            #         runningLowFrame = '15minutes'
+            #         chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
+            #         if negative_momentum4h:
+            #             log = '{} 4hour momentum is weak. No buying opportunity. Wait 1 min.' \
+            #                 .format(time_stamp(time.time()))
+            #             logging.info(log)
+            #             logs.append(log + '<br>')
+            #             time.sleep(60)
+            #         else:
+            #             if buy_flag_1h:
+            #                 log = '{} 1hour momentum is {}.'.format(time_stamp(time.time()), buy_flag_1h)
+            #                 logging.info(log)
+            #                 logs.append(log + '<br>')
+            #                 if mode == 'trading':
+            #                     order_manager('market', i4h, i1h, i15m, condition,
+            #                                   crypto_currency, fiat_currency, max_rsi)
+            #                 elif mode == 'consulting' or mode == 'simulator':
+            #                     limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
+            #             else:
+            #                 log = '{} 1hour momentum is {}. Wait 1 min'.format(time_stamp(time.time()), buy_flag_1h)
+            #                 logging.info(log)
+            #                 logs.append(log + '<br>')
+            #                 time.sleep(60)
+            #     else:
+            #         log = '{} All trend frames negative. No buying opportunity. Wait 5 min.' \
+            #             .format(time_stamp(time.time()))
+            #         logging.info(log)
+            #         logs.append(log + '<br>')
+            #         runningHighFrame = '4Hour'
+            #         runningMidFrame = '1Hour'
+            #         runningLowFrame = '15minutes'
+            #         chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
+            #         time.sleep(300)
+            # elif condition == 'sell':
+            #     if trend_24h:
+            #         log = '{} 24hour trend is {}.'.format(time_stamp(time.time()), trend_24h)
+            #         logging.info(log)
+            #         logs.append(log + '<br>')
+            #         runningHighFrame = '24Hour'
+            #         runningMidFrame = '4Hour'
+            #         runningLowFrame = '1Hour'
+            #         chart_data(high_frame_24h, mid_frame_4h, low_frame_indicators(i1h_frame))
+            #         if sell_flag_4h:
+            #             log = '{} 4hour sell flag is {}.'.format(time_stamp(time.time()), sell_flag_4h)
+            #             logging.info(log)
+            #             logs.append(log + '<br>')
+            #             if mode == 'trading':
+            #                 order_manager('market', i24h, i4h, i1h, condition, crypto_currency, fiat_currency, max_rsi)
+            #             elif mode == 'consulting' or mode == 'simulator':
+            #                 limit_manager(mode, i24h, i4h, i1h, condition, max_rsi)
+            #         else:
+            #             log = '{} 4hour sell flag is {}. Wait 1 minute.'.format(time_stamp(time.time()), sell_flag_4h)
+            #             logging.info(log)
+            #             logs.append(log + '<br>')
+            #             time.sleep(60)
+            #     elif trend_4h:
+            #         log = '{} 4hour trend is {}.'.format(time_stamp(time.time()), trend_4h)
+            #         logging.info(log)
+            #         logs.append(log + '<br>')
+            #         runningHighFrame = '4Hour'
+            #         runningMidFrame = '1Hour'
+            #         runningLowFrame = '15minutes'
+            #         chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
+            #         if sell_flag_1h:
+            #             log = '{} 1hour sell flag is {}.'.format(time_stamp(time.time()), sell_flag_1h)
+            #             logging.info(log)
+            #             logs.append(log + '<br>')
+            #             if mode == 'trading':
+            #                 order_manager('market', i4h, i1h, i15m, condition, crypto_currency, fiat_currency, max_rsi)
+            #             elif mode == 'consulting' or mode == 'simulator':
+            #                 limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
+            #         else:
+            #             log = '{} 1hour sell flag is {}. Wait 1 minute.'.format(time_stamp(time.time()), sell_flag_1h)
+            #             logging.info(log)
+            #             logs.append(log + '<br>')
+            #             time.sleep(60)
+            #     else:
+            #         log = '{} All high-frame trends are negative.'.format(time_stamp(time.time()))
+            #         logging.info(log)
+            #         logs.append(log + '<br>')
+            #         runningHighFrame = '4Hour'
+            #         runningMidFrame = '1Hour'
+            #         runningLowFrame = '15minutes'
+            #         chart_data(high_frame_4h, mid_frame_1h, low_frame_indicators(i15m_frame))
+            #         if mode == 'trading':
+            #             order_manager('market', i4h, i1h, i15m, condition, crypto_currency, fiat_currency, max_rsi)
+            #         elif mode == 'consulting' or mode == 'simulator':
+            #             limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
     else:
         activation()
         log = 'Your product licence is not active. Please activate or contact technical support. ' \
