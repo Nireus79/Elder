@@ -6,6 +6,13 @@
 
 {% block body %}
     <form action="#" method="post">
+        <select name="frames" class="form-select" aria-label="Default select example">
+          <option selected>Frames combination</option>
+          <option value='W'>Week/day/4hour</option>
+          <option value='D'>Day/4hour/1hour</option>
+          <option value='4'>4hour/1hour/15minutes</option>
+        </select>
+        <br>
         <select name="rsi" class="form-select" aria-label="Default select example">
           <option selected>Max RSI</option>
           <option value='70'>Default 70</option>
