@@ -567,8 +567,8 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
             logging.info(log)
             logs.append(log + '<br>')
             trend = high_frame.iloc[-1]['trend']
-            buy_flag = mid_frame.iloc[-1]['buy_flag']
-            sell_flag = mid_frame.iloc[-1]['sell_flag']
+            buy_flag = mid_frame.iloc[-1]['buy flag']
+            sell_flag = mid_frame.iloc[-1]['sell flag']
             chart_data(high_frame, mid_frame, low_frame)
             if condition == 'buy':
                 if trend:
