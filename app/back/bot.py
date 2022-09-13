@@ -9,12 +9,6 @@ from app.back.spring import check, activation
 logging.basicConfig(level=logging.INFO)
 
 condition = None
-trend_24h = None
-trend_4h = None
-buy_flag_4h = False
-buy_flag_1h = False
-sell_flag_4h = None
-sell_flag_1h = None
 crypto_balance = None
 fiat_balance = 0
 limit = None
@@ -509,8 +503,8 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
     :param fiat_currency: the fiat asset to be traded
     :param depth: the time periods back to be analysed
     """
-    global condition, log, trend_24h, trend_4h, buy_flag_4h, buy_flag_1h, sell_flag_4h, sell_flag_1h, \
-        crypto_balance, fiat_balance, closing_price, runningHighFrame, runningMidFrame, runningLowFrame
+    global condition, log, crypto_balance, fiat_balance, closing_price,\
+        runningHighFrame, runningMidFrame, runningLowFrame
     licence = check()['license_active']
     if licence:
         log = 'Your product licence is active. Thank you for using Hermes.'
@@ -572,45 +566,45 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
             chart_data(high_frame, mid_frame, low_frame)
             if condition == 'buy':
                 if trend:
-                    log = '{} {} trend is {}'.format(time_stamp(time.time()), runningHighFrame, trend_24h)
+                    log = '{} {} trend is {}'.format(time_stamp(time.time()), runningHighFrame, trend)
                     logging.info(log)
                     logs.append(log + '<br>')
                     if buy_flag:
-                        log = '{} {} momentum is {}.'.format(time_stamp(time.time()), runningMidFrame, buy_flag_4h)
+                        log = '{} {} momentum is {}.'.format(time_stamp(time.time()), runningMidFrame, buy_flag)
                         logging.info(log)
                         logs.append(log + '<br>')
                         if mode == 'trading':
-                            order_manager('market', i24h, i4h, i1h, condition, crypto_currency, fiat_currency, max_rsi)
+                            order_manager('market', hf, mf, lf, condition, crypto_currency, fiat_currency, max_rsi)
                         elif mode == 'consulting' or mode == 'simulator':
-                            limit_manager(mode, i24h, i4h, i1h, condition, max_rsi)
+                            limit_manager(mode, hf, mf, lf, condition, max_rsi)
                     else:
                         log = '{} {} momentum is {}. Wait 1 min.'.format(time_stamp(time.time()),
-                                                                         runningMidFrame, buy_flag_1h)
+                                                                         runningMidFrame, buy_flag)
                         logging.info(log)
                         logs.append(log + '<br>')
                         time.sleep(60)
                 else:
                     log = '{} {} trend is {}. No buying opportunity. Wait 1 min.' \
-                        .format(time_stamp(time.time()), runningHighFrame, buy_flag_4h)
+                        .format(time_stamp(time.time()), runningHighFrame, buy_flag)
                     logging.info(log)
                     logs.append(log + '<br>')
                     time.sleep(60)
             elif condition == 'sell':
                 if trend:
-                    log = '{} {} trend is {}.'.format(time_stamp(time.time()), runningHighFrame, trend_24h)
+                    log = '{} {} trend is {}.'.format(time_stamp(time.time()), runningHighFrame, trend)
                     logging.info(log)
                     logs.append(log + '<br>')
                     if sell_flag:
-                        log = '{} {} sell flag is {}.'.format(time_stamp(time.time()), runningMidFrame, sell_flag_4h)
+                        log = '{} {} sell flag is {}.'.format(time_stamp(time.time()), runningMidFrame, sell_flag)
                         logging.info(log)
                         logs.append(log + '<br>')
                         if mode == 'trading':
-                            order_manager('market', i24h, i4h, i1h, condition, crypto_currency, fiat_currency, max_rsi)
+                            order_manager('market', hf, mf, lf, condition, crypto_currency, fiat_currency, max_rsi)
                         elif mode == 'consulting' or mode == 'simulator':
-                            limit_manager(mode, i24h, i4h, i1h, condition, max_rsi)
+                            limit_manager(mode, hf, mf, lf, condition, max_rsi)
                     else:
                         log = '{} {} sell flag is {}. Wait 1 minute.'.format(time_stamp(time.time()),
-                                                                             runningMidFrame, sell_flag_4h)
+                                                                             runningMidFrame, sell_flag)
                         logging.info(log)
                         logs.append(log + '<br>')
                         time.sleep(60)
@@ -619,9 +613,9 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
                     logging.info(log)
                     logs.append(log + '<br>')
                     if mode == 'trading':
-                        order_manager('market', i4h, i1h, i15m, condition, crypto_currency, fiat_currency, max_rsi)
+                        order_manager('market', hf, mf, lf, condition, crypto_currency, fiat_currency, max_rsi)
                     elif mode == 'consulting' or mode == 'simulator':
-                        limit_manager(mode, i4h, i1h, i15m, condition, max_rsi)
+                        limit_manager(mode, hf, mf, lf, condition, max_rsi)
     else:
         activation()
         log = 'Your product licence is not active.' \
@@ -645,12 +639,6 @@ def data_feed():
         'runningHighFrame': runningHighFrame,
         'runningMidFrame': runningMidFrame,
         'runningLowFrame': runningLowFrame,
-        'trend_24h': str(trend_24h),
-        'trend_4h': str(trend_4h),
-        'buy_flag_4h': str(buy_flag_4h),
-        'sell_flag_4h': str(sell_flag_4h),
-        'buy_flag_1h': str(buy_flag_1h),
-        'sell_flag_1h': str(sell_flag_1h),
         'high_chart_data': high_chart_data,
         'mid_chart_data': mid_chart_data,
         'high_ema13': high_ema13,
