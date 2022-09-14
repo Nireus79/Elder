@@ -14,7 +14,9 @@ fiat_balance = 0
 limit = None
 stop = None
 closing_price = None
-
+trend = None
+buy_flag = None
+sell_flag = None
 runningHighFrame = None
 runningMidFrame = None
 runningLowFrame = None
@@ -143,7 +145,8 @@ def order_manager(order_type, high, mid, low, cond, crypto_currency, fiat_curren
     When setting buy order, vol = (money - money * max kraken fee) / crypto price
     When setting sell order, vol = crypto_balance (fee is calculated by kraken)
     """
-    global condition, stop, limit, log, closing_price, runningLowFrame, crypto_balance, fiat_balance, l_atr
+    global condition, stop, limit, log, closing_price, runningLowFrame, crypto_balance, fiat_balance, l_atr, \
+        buy_flag, sell_flag
     beeper('start')
     log = '{} Order management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -283,7 +286,7 @@ def limit_manager(mode, high, mid, low, cond, max_rsi):
     :param low: The low frame instance, used to set limit/stop-loss borders.
     :param cond: Condition sell/buy
     """
-    global condition, stop, limit, log, closing_price, runningLowFrame, l_atr
+    global condition, stop, limit, log, closing_price, runningLowFrame, l_atr, buy_flag, sell_flag
     beeper('start')
     log = '{} Limit management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -503,8 +506,8 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
     :param fiat_currency: the fiat asset to be traded
     :param depth: the time periods back to be analysed
     """
-    global condition, log, crypto_balance, fiat_balance, closing_price,\
-        runningHighFrame, runningMidFrame, runningLowFrame
+    global condition, log, crypto_balance, fiat_balance, closing_price, \
+        runningHighFrame, runningMidFrame, runningLowFrame, trend, buy_flag, sell_flag
     licence = check()['license_active']
     if licence:
         log = 'Your product licence is active. Thank you for using Hermes.'
@@ -647,6 +650,9 @@ def data_feed():
         'mid_ds': mid_ds,
         'mid_rs': mid_rs,
         'low_chart_data': low_chart_data,
+        'trend': str(trend),
+        'buy_flag': str(buy_flag),
+        'sell_flag': str(sell_flag),
         'price': closing_price,
         'l_atr': l_atr,
         'low_limit': low_limit,

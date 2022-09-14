@@ -25,6 +25,11 @@
     <script type="text/javascript" src="{{url_for('static', filename='js/mid_frame_chart.js')}}"></script>
         <div id="low_frame_chart" class="flex-item"></div>
         <script type="text/javascript" src="{{url_for('static', filename='js/low_frame_chart.js')}}"></script>
+    <span id="trend"></span>
+    <span id="buy_flag"></span>
+    <span id="sell_flag"></span>
+    <br>
+    <br>
     <a href='/stop'><input type='button' value='Stop bot'></a>
     <a href='/cancel'><input type='button' value='Cancel active order'></a>
     <span id="log"></span>
