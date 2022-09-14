@@ -433,8 +433,10 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
     Program starts with higher degree time frame and subsequently downgrades time frames lower progressively.
 
     Frames combinations:
+    Combination 1: High 1week - mid 1day - low 4 hours.
     Combination 1: High 24hours - mid 4 hours - low 1 hour.
     Combination 2: High 4 hours - mid 1 hour - low 15 min.
+    Combo is given manually as a parameter before initiation.
 
     Evaluation phases
     1) Trend. The long-term trend is evaluated. – Alex Elder calls this as being the tide, and it's evaluation gives
@@ -471,34 +473,21 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
         Next, condition (get_condition()) is taken from users account balance (when in trading or consulting mode)
         and bot constantly evaluates the flags in a while loop.
         if condition is 'buy':
-            if 24 hour high frame trend is positive (True trend flag):
-                If 24 momentum (stochastic) is negative:
-                    wait 5min.
-                else:
-                    if 4 hour mid-frame is strong (buy flag True):
-                        order_manager() evaluates to buy on 1 hour low frame.
-                    elif 4 hour mid-frame conditions are NOT aligned:
-                        if 4 hour high frame trend is positive:
-                            if 1 hour momentum is strong and 4hour momentum is not weak:
-                                order_manager() evaluates to buy on 15 min low frame.
-                            elif 1 hour mid-frame conditions are NOT aligned:
-                                sleep 5 minutes to review conditions.
-            elif 4 hour high frame trend is positive ...same as above for lower frames (H4 M1 L15)...
-            else: (conditions at all time frame combinations are not aligned)
+            if high frame trend is positive (True trend flag):
+                if mid-frame is strong (buy flag True):
+                    order_manager() evaluates to buy on 1 hour low frame.
+                elif mid-frame conditions are NOT aligned:
+                    sleep 1 minute to review conditions.
+            else:
                 bot sleeps for 5 minutes to review conditions.
         elif condition is 'sell':
-            if 24 hour high frame trend is positive:
-                if 4 hour momentum is weak:
-                    order_manager() kicks in to sell on 1 hour low frame.
+            if high frame trend is positive:
+                if momentum is weak:
+                    order_manager() kicks in to sell on low frame.
                 else:
-                    waits 5min.
-            elif 4 hour high-frame is positive:
-                if 1 hour mid-frame is weak:
-                    order_manager() kicks in to sell on 15 min low frame.
-                else:
-                    waits 5min.
-            else: (all high frames trend is negative)
-                order_manager() kicks in to sell on 15minute low frame.
+                    waits 1min.
+            else:
+                order_manager() kicks in to sell on low frame.
     :param frames: screen frames
     :param max_rsi: maximum rsi in mid-frame
     :param mode: trading / consulting
