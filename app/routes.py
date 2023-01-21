@@ -9,9 +9,9 @@ import logging
 # Default values given as preset
 asset_a = None
 asset_b = None
-mode = None
+mode = 'W'
 frames = None
-rsi = 70
+rsi = 100
 
 # Flask logs
 log = logging.getLogger('werkzeug')
@@ -29,11 +29,11 @@ def control():
     global frames, asset_a, asset_b, mode, rsi
     if request.method == 'POST':
         try:
-            frames = request.form['frames']
+            #  frames = request.form['frames']
             asset_a = request.form['assetA']
             asset_b = request.form['assetB']
             mode = request.form['mode']
-            rsi = float(request.form['rsi'])
+            #  rsi = float(request.form['rsi'])
         except Exception as e:
             logging.info(e)
     else:
@@ -57,8 +57,8 @@ def update():
     dt['current_time'] = time_stamp(time.time())
     dt['crypto_currency'] = asset_a
     dt['fiat_currency'] = asset_b
-    dt['mode'] = mode
-    dt['rsi'] = rsi
+    #  dt['mode'] = mode
+    #  dt['rsi'] = rsi
     return jsonify(dt)
 
 
@@ -70,9 +70,9 @@ def starter():
     elif asset_a is None or asset_b is None:
         logging.info('Set assets.')
         return render_template('control.html')
-    elif rsi is None:
-        logging.info('Set rsi.')
-        return render_template('control.html')
+    # elif rsi is None:
+    #     logging.info('Set rsi.')
+    #     return render_template('control.html')
     else:
         trading = threading.Thread(target=elderbot, args=(mode, frames, asset_a, asset_b, 40, rsi))
         # minimum depth argument is 35 needed for technical indicators

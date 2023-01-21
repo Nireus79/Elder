@@ -5,18 +5,19 @@ var options = {
           type: 'candlestick',
           data: []
           },{
+          name: 'Stochastic %K: ',
+          type: 'line',
+          data: []
+          },{
           name: 'Stochastic %D: ',
           type: 'line',
           data: []
-          },{
-          name: 'Stochastic %DS: ',
-          type: 'line',
-          data: []
-          },{
-          name: 'RSI: ',
-          type: 'line',
-          data: []
           }
+//          ,{
+//          name: 'RSI: ',
+//          type: 'line',
+//          data: []
+//          }
           ],
           chart: {
           height: 230,
@@ -60,12 +61,13 @@ function update_values() {
               name: 'Middle frame: ' + data_update.runningMidFrame,
               data: data_update.mid_chart_data.slice(-20)
               },{
-              name: 'Stochastic %D: ' + data_update.mid_d
+              name: 'Stochastic %K: ' + data_update.mid_d
               },{
-              name: 'Stochastic %DS: ' + data_update.mid_ds
-              },{
-              name: 'RSI: ' + data_update.mid_rs
+              name: 'Stochastic %D: ' + data_update.mid_ds
               }
+//              ,{
+//              name: 'RSI: ' + data_update.mid_rs
+//              }
             ])
         }
     );

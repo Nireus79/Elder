@@ -154,12 +154,12 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency, ma
     high_f = high_frame_indicators(high.get_frame())
     mid_f = mid_frame_indicators(mid.get_frame(), max_rsi)
     low_f = low_frame_indicators(low.get_frame())
-    l_atr = low_f.iloc[-1]['atr']
+    # l_atr = low_f.iloc[-1]['atr']
     candle_time = low_f.iloc[-1]['time']
     if cond == 'buy':
-        limit = low_f.iloc[-1]['high'] + l_atr
+        limit = low_f.iloc[-1]['high']  # + l_atr
     elif cond == 'sell':
-        stop = low_f.iloc[-1]['low'] - l_atr
+        stop = low_f.iloc[-1]['low']  # - l_atr
     closing_price = low_f.iloc[-1]['close']
     log = 'Balance: {} {}. {} {}'.format(crypto_balance, crypto_currency, fiat_balance, fiat_currency)
     logging.info(log)
@@ -180,8 +180,8 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency, ma
         sell_flag = mid_f.iloc[-1]['sell flag']
         l_atr = low_f.iloc[-1]['atr']
         chart_data(high_f, mid_f, low_f)
-        new_limit = low_f.iloc[-1]['high'] + l_atr
-        new_stop = low_f.iloc[-1]['low'] - l_atr
+        new_limit = low_f.iloc[-1]['high']  # + l_atr
+        new_stop = low_f.iloc[-1]['low']  # - l_atr
         closing_price = low_f.iloc[-1]['close']
         new_candle_time = low_f.iloc[-1]['time']
         if break_event.is_set():  # thread "kill" by user
@@ -294,9 +294,9 @@ def limit_manager(mode, high, mid, low, cond, max_rsi):
     high_f = high_frame_indicators(high.get_frame())
     mid_f = mid_frame_indicators(mid.get_frame(), max_rsi)
     low_f = low_frame_indicators(low.get_frame())
-    l_atr = low_f.iloc[-1]['atr']
-    limit = low_f.iloc[-1]['high'] + l_atr
-    stop = low_f.iloc[-1]['low'] - l_atr
+    # l_atr = low_f.iloc[-1]['atr']
+    limit = low_f.iloc[-1]['high']  # + l_atr
+    stop = low_f.iloc[-1]['low']  # - l_atr
     closing_price = low_f.iloc[-1]['close']
     candle_time = low_f.iloc[-1]['time']
     log = '{} Current price {}. limit: {}. Stop loss: {}'.format(time_stamp(time.time()), closing_price, limit, stop)
@@ -322,8 +322,8 @@ def limit_manager(mode, high, mid, low, cond, max_rsi):
         buy_flag = mid_f.iloc[-1]['buy flag']
         sell_flag = mid_f.iloc[-1]['sell flag']
         l_atr = low_f.iloc[-1]['atr']
-        new_limit = low_f.iloc[-1]['high'] + l_atr
-        new_stop = low_f.iloc[-1]['low'] - l_atr
+        new_limit = low_f.iloc[-1]['high']  # + l_atr
+        new_stop = low_f.iloc[-1]['low']  # - l_atr
         closing_price = low_f.iloc[-1]['close']
         chart_data(high_f, mid_f, low_f)
         new_candle_time = low_f.iloc[-1]['time']
@@ -421,83 +421,9 @@ def limit_manager(mode, high, mid, low, cond, max_rsi):
 
 
 def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
-    """
-    Custom, real time, multiple time frame, consulting-trading bot application,
-    interpretation of Alexander Elder's "triple screen" forex market trading strategy.
-    The strategy.
-    The strategy is using data from three time frames, calculating indicators on first two and acts on the third.
-
-    First frame used for establishing a trading bias.
-    Second frame applies technical indicators to identify retracements against the trading bias established earlier.
-    Third frame is used for timing entries using short-term breakouts in the direction of your trading bias.
-    Program starts with higher degree time frame and subsequently downgrades time frames lower progressively.
-
-    Frames combinations:
-    Combination 1: High 1week - mid 1day - low 4 hours.
-    Combination 1: High 24hours - mid 4 hours - low 1 hour.
-    Combination 2: High 4 hours - mid 1 hour - low 15 min.
-    Combo is given manually as a parameter before initiation.
-
-    Evaluation phases
-    1) Trend. The long-term trend is evaluated. – Alex Elder calls this as being the tide, and it's evaluation gives
-    the general trend direction.
-    2) Correction. The medium-term trend is evaluated. – This trend is also known as the wave, gives the trend momentum
-    strength and position.
-    3) Specification. - The short-term trend – It is also referred to as the ripple used to set limits of buy and stop
-    loss. Exact entry point is corrected by closely monitoring price movement.
-    High frame.
-    General trend can be detected with the use of 200 periods EMA, combination of 9, 20, 50 periods EMA, macd, etc.
-    According to Elder the highly profitable spectrum of a positive trend is when price overcomes a pullback,
-    entering the bullish zone.
-    In our case a preset combination of 13p EMA and macd indicators (Closing > EMA13 and macd > 0)
-    is used to determine the high frame trend.
-    Mid-frame.
-    Trend momentum and position is detected with the use of stochastic slow indicator. Stochastic fast can be used for
-    quicker response but in this case more force signals are generated. Stochastic slow is used as it is a 'smothered'
-    version of stoch fast. (d > ds > 20 buy Flag / d < ds < 80 sell Flag)
-    An additional indicator of strength is added (RSI) as choice for safety reasons,
-    as when current price strength is above safety, price is actually 'overbought' and probability of descent is high.
-    Low frame.
-    When conditions are aligned in the higher frames action limits are set, according to the last low frame
-    closed candle range. Next candle price gives action flag or sets new limits.
-    Low frame current candle ATR is added to the limit and subtracted to stop-loss, so current volatility
-    of the price is taken into consideration to avoid false transactions.
-
-    https://en.wikipedia.org/wiki/Alexander_Elder
-    elder.com
-    tradingstrategyguides.com
-    www.elearnmarkets.com
-
-    Original strategy dictates to wait the whole time of each candle to set condition flag,
-        but as api provides data in real time, duration is divided optionally to make bot faster.
-        Next, condition (get_condition()) is taken from users account balance (when in trading or consulting mode)
-        and bot constantly evaluates the flags in a while loop.
-        if condition is 'buy':
-            if high frame trend is positive (True trend flag):
-                if mid-frame is strong (buy flag True):
-                    order_manager() evaluates to buy on 1 hour low frame.
-                elif mid-frame conditions are NOT aligned:
-                    sleep 1 minute to review conditions.
-            else:
-                bot sleeps for 5 minutes to review conditions.
-        elif condition is 'sell':
-            if high frame trend is positive:
-                if momentum is weak:
-                    order_manager() kicks in to sell on low frame.
-                else:
-                    waits 1min.
-            else:
-                order_manager() kicks in to sell on low frame.
-    :param frames: screen frames
-    :param max_rsi: maximum rsi in mid-frame
-    :param mode: trading / consulting
-    :param crypto_currency: the crypto asset to be traded
-    :param fiat_currency: the fiat asset to be traded
-    :param depth: the time periods back to be analysed
-    """
     global condition, log, crypto_balance, fiat_balance, closing_price, \
         runningHighFrame, runningMidFrame, runningLowFrame, trend, buy_flag, sell_flag
-    licence = check()['license_active']
+    licence = True  # check()['license_active']
     if licence:
         log = 'Your product licence is active. Thank you for using Hermes.'
         logging.info(log)
@@ -507,35 +433,35 @@ def elderbot(mode, frames, crypto_currency, fiat_currency, depth, max_rsi):
         i1w = Api(crypto_currency, fiat_currency, 10080, depth)
         i24h = Api(crypto_currency, fiat_currency, 1440, depth)
         i4h = Api(crypto_currency, fiat_currency, 240, depth)
-        i1h = Api(crypto_currency, fiat_currency, 60, depth)
-        i15m = Api(crypto_currency, fiat_currency, 15, depth)
+        # i1h = Api(crypto_currency, fiat_currency, 60, depth)
+        # i15m = Api(crypto_currency, fiat_currency, 15, depth)
         log = '{} Operation start. Mode is {}. Max RSI set to: {}.'.format(time_stamp(time.time()), mode, max_rsi)
         logging.info(log)
         logs.append(log + '<br>')
-        hf = None
-        mf = None
-        lf = None
-        if frames == 'W':
-            hf = i1w
-            mf = i24h
-            lf = i4h
-            runningHighFrame = '1 week'
-            runningMidFrame = '24Hour'
-            runningLowFrame = '4Hour'
-        elif frames == 'D':
-            hf = i24h
-            mf = i4h
-            lf = i1h
-            runningHighFrame = '24Hour'
-            runningMidFrame = '4Hour'
-            runningLowFrame = '1Hour'
-        elif frames == '4h':
-            hf = i4h
-            mf = i1h
-            lf = i15m
-            runningHighFrame = '4Hour'
-            runningMidFrame = '1Hour'
-            runningLowFrame = '15min'
+        # hf = None
+        # mf = None
+        # lf = None
+        # if frames == 'W':
+        hf = i1w
+        mf = i24h
+        lf = i4h
+        runningHighFrame = '1 week'
+        runningMidFrame = '1 day'
+        runningLowFrame = '4 hours'
+        # elif frames == 'D':
+        #     hf = i24h
+        #     mf = i4h
+        #     lf = i1h
+        #     runningHighFrame = '24Hour'
+        #     runningMidFrame = '4Hour'
+        #     runningLowFrame = '1Hour'
+        # elif frames == '4h':
+        #     hf = i4h
+        #     mf = i1h
+        #     lf = i15m
+        #     runningHighFrame = '4Hour'
+        #     runningMidFrame = '1Hour'
+        #     runningLowFrame = '15min'
         while True:
             high_frame = high_frame_indicators(hf.get_frame())
             mid_frame = mid_frame_indicators(mf.get_frame(), max_rsi)

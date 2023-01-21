@@ -118,7 +118,7 @@ def time_stamp(unix):
     :param unix: unix time.time()
     :return: Readable datetime format.
     """
-    ts = int(unix) + 10800  # (7200 +2 hours winter, 10800 +3 hours summer) for local time Athens
+    ts = int(unix) + 7200  # (7200 +2 hours winter, 10800 +3 hours summer) for local time Athens
     return datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
 
@@ -134,9 +134,9 @@ def high_frame_indicators(df):
     hdf = df.copy()
     hdf['EMA13'] = hdf['close'].rolling(13).mean()
     hdf['macd'] = macd_diff(hdf['close'], window_slow=26, window_fast=12, window_sign=9, fillna=False)
-    hdf['%K'] = stoch(hdf['high'], hdf['low'], hdf['close'], window=14, smooth_window=3, fillna=False)
-    hdf['%D'] = hdf['%K'].rolling(3).mean()
-    hdf['%DS'] = hdf['%D'].rolling(3).mean()  # Stochastic slow.
+    # hdf['%K'] = stoch(hdf['high'], hdf['low'], hdf['close'], window=14, smooth_window=3, fillna=False)
+    # hdf['%D'] = hdf['%K'].rolling(3).mean()
+    # hdf['%DS'] = hdf['%D'].rolling(3).mean()  # Stochastic slow.
     hdf['trend'] = hdf.apply(lambda x: x['close'] > x['EMA13'] and x['macd'] > 0, axis=1)
     return hdf
 
@@ -152,10 +152,10 @@ def mid_frame_indicators(df, max_rsi):
     mdf = df.copy()
     mdf['%K'] = stoch(mdf['high'], mdf['low'], mdf['close'], window=14, smooth_window=3, fillna=False)
     mdf['%D'] = mdf['%K'].rolling(3).mean()
-    mdf['%DS'] = mdf['%D'].rolling(3).mean()  # Stochastic slow.
-    mdf['rsi'] = rsi(mdf['close'], window=14, fillna=False)
-    mdf['buy flag'] = mdf.apply(lambda x: x['%D'] > x['%DS'] > 20 and x['rsi'] < max_rsi, axis=1)
-    mdf['sell flag'] = mdf.apply(lambda x: x['%D'] < x['%DS'] < 80, axis=1)
+    # mdf['%DS'] = mdf['%D'].rolling(3).mean()  # Stochastic slow.
+    # mdf['rsi'] = rsi(mdf['close'], window=14, fillna=False)
+    mdf['buy flag'] = mdf.apply(lambda x: x['%K'] > x['%D'] > 20, axis=1)  # and x['rsi'] < max_rsi, axis=1)
+    mdf['sell flag'] = mdf.apply(lambda x: x['%K'] < x['%D'] < 80, axis=1)
     return mdf
 
 
@@ -168,7 +168,7 @@ def low_frame_indicators(df):
     :return: ldf enriched with atr
     """
     ldf = df.copy()
-    ldf['atr'] = average_true_range(ldf['high'], ldf['low'], ldf['close'], window=14, fillna=False)
+    # ldf['atr'] = average_true_range(ldf['high'], ldf['low'], ldf['close'], window=14, fillna=False)
     return ldf
 
 
