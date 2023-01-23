@@ -9,11 +9,7 @@ var options = {
           type: 'line',
           data: []
         },{
-          name: 'EMA13: ',
-          type: 'line',
-          data: []
-        },{
-          name: 'MACD: ',
+          name: 'EMA20: ',
           type: 'line',
           data: []
         }
@@ -64,11 +60,9 @@ function update_values() {
             },{
               name: 'Closing price: ' + data_update.price
             },{
-              name: 'EMA13: ' + data_update.high_ema13[data_update.high_ema13.length - 1]['y'],
-              data: data_update.high_ema13.slice(-20)
-            },{
-              name: 'MACD: ' + data_update.high_macd
-              }
+              name: 'EMA20: ' + data_update.high_ema[data_update.high_ema.length - 1]['y'],
+              data: data_update.high_ema.slice(-20)
+            }
             ]);
         }
     );

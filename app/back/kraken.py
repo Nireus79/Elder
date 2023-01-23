@@ -132,16 +132,12 @@ def high_frame_indicators(df):
     :return: hdf enriched with technical indicators and flags
     """
     hdf = df.copy()
-    hdf['EMA13'] = hdf['close'].rolling(13).mean()
-    hdf['macd'] = macd_diff(hdf['close'], window_slow=26, window_fast=12, window_sign=9, fillna=False)
-    # hdf['%K'] = stoch(hdf['high'], hdf['low'], hdf['close'], window=14, smooth_window=3, fillna=False)
-    # hdf['%D'] = hdf['%K'].rolling(3).mean()
-    # hdf['%DS'] = hdf['%D'].rolling(3).mean()  # Stochastic slow.
-    hdf['trend'] = hdf.apply(lambda x: x['close'] > x['EMA13'] and x['macd'] > 0, axis=1)
+    hdf['EMA'] = hdf['close'].rolling(20).mean()
+    hdf['trend'] = hdf.apply(lambda x: x['close'] > x['EMA'], axis=1)
     return hdf
 
 
-def mid_frame_indicators(df, max_rsi):
+def mid_frame_indicators(df):
     """
     Takes a pandas dataframe provided by Kraken rest api containing ohlc data,
     adding columns to each row with the technical indicators of ohlc (stochastic %k, stochastic%d, rsi, %atr),
@@ -152,10 +148,8 @@ def mid_frame_indicators(df, max_rsi):
     mdf = df.copy()
     mdf['%K'] = stoch(mdf['high'], mdf['low'], mdf['close'], window=14, smooth_window=3, fillna=False)
     mdf['%D'] = mdf['%K'].rolling(3).mean()
-    # mdf['%DS'] = mdf['%D'].rolling(3).mean()  # Stochastic slow.
-    # mdf['rsi'] = rsi(mdf['close'], window=14, fillna=False)
-    mdf['buy flag'] = mdf.apply(lambda x: x['%K'] > x['%D'] > 20, axis=1)  # and x['rsi'] < max_rsi, axis=1)
-    mdf['sell flag'] = mdf.apply(lambda x: x['%K'] < x['%D'] < 80, axis=1)
+    mdf['buy flag'] = mdf.apply(lambda x: x['%K'] > x['%D'] > 10, axis=1)  # and x['rsi'] < max_rsi, axis=1)
+    mdf['sell flag'] = mdf.apply(lambda x: x['%K'] < x['%D'], axis=1)  # < 80, axis=1)
     return mdf
 
 
@@ -187,8 +181,7 @@ def high_data(frame):
     front_df['time'] = front_df['time'].apply(lambda x: (x * 1000) + 10800000)  # *1000 javascript time + 3hours
     data_list = front_df.values.tolist()
     candle_data = []
-    ema13_data = []
-    macd_data = round(data_list[-1][9], 4)
+    ema_data = []
     for i in data_list:
         candle_data.append({
             'x': i[0],
@@ -196,11 +189,11 @@ def high_data(frame):
         })
     for i in data_list:
         if i[8] != 0:
-            ema13_data.append({
+            ema_data.append({
                 'x': i[0],
                 'y': round(i[8], 4)
             })
-    return candle_data, ema13_data, macd_data
+    return candle_data, ema_data
 
 
 def mid_data(frame):
@@ -211,15 +204,14 @@ def mid_data(frame):
     front_df['time'] = front_df['time'].apply(lambda x: (x * 1000) + 10800000)
     data_list = front_df.values.tolist()
     candle_data = []
+    stoch_k_data = round(data_list[-1][8], 4)
     stoch_d_data = round(data_list[-1][9], 4)
-    stoch_ds_data = round(data_list[-1][10], 4)
-    rsi_data = round(data_list[-1][11], 4)
     for i in data_list:
         candle_data.append({
             'x': i[0],
             'y': [i[1], i[2], i[3], i[4]]
         })
-    return candle_data, stoch_d_data, stoch_ds_data, rsi_data
+    return candle_data, stoch_k_data, stoch_d_data
 
 
 def low_data(frame):

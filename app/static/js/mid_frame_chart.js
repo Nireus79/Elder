@@ -13,11 +13,6 @@ var options = {
           type: 'line',
           data: []
           }
-//          ,{
-//          name: 'RSI: ',
-//          type: 'line',
-//          data: []
-//          }
           ],
           chart: {
           height: 230,
@@ -61,13 +56,10 @@ function update_values() {
               name: 'Middle frame: ' + data_update.runningMidFrame,
               data: data_update.mid_chart_data.slice(-20)
               },{
-              name: 'Stochastic %K: ' + data_update.mid_d
+              name: 'Stochastic %K: ' + data_update.mid_k
               },{
-              name: 'Stochastic %D: ' + data_update.mid_ds
+              name: 'Stochastic %D: ' + data_update.mid_d
               }
-//              ,{
-//              name: 'RSI: ' + data_update.mid_rs
-//              }
             ])
         }
     );
