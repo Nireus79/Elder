@@ -9,7 +9,7 @@ import logging
 # Default values given as preset
 asset_a = None
 asset_b = None
-mode = 'W'
+mode = None
 frames = None
 
 # Flask logs

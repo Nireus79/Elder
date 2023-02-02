@@ -6,15 +6,17 @@ import urllib.parse
 import hashlib
 import hmac
 import base64
-from ta.momentum import rsi, stoch
-from ta.trend import macd_diff
+from ta.momentum import stoch, rsi
 from ta.volatility import average_true_range
 import os
 import time
+import pandas as pd
 
 api_url = "https://api.kraken.com"
 api_key = os.environ['API_KEY_KRAKEN']
 api_sec = os.environ['API_SEC_KRAKEN']
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
 
 
 def get_kraken_signature(url, data, secret):
@@ -132,8 +134,9 @@ def high_frame_indicators(df):
     :return: hdf enriched with technical indicators and flags
     """
     hdf = df.copy()
-    hdf['EMA'] = hdf['close'].rolling(20).mean()
-    hdf['trend'] = hdf.apply(lambda x: x['close'] > x['EMA'], axis=1)
+    hdf['EMA1'] = hdf['close'].rolling(6).mean()
+    # hdf['EMA2'] = hdf['close'].rolling(12).mean()
+    hdf['trend'] = hdf.apply(lambda x: x['close'] > x['EMA1'], axis=1)
     return hdf
 
 
@@ -148,8 +151,9 @@ def mid_frame_indicators(df):
     mdf = df.copy()
     mdf['%K'] = stoch(mdf['high'], mdf['low'], mdf['close'], window=14, smooth_window=3, fillna=False)
     mdf['%D'] = mdf['%K'].rolling(3).mean()
-    mdf['buy flag'] = mdf.apply(lambda x: x['%K'] > x['%D'] > 10, axis=1)  # and x['rsi'] < max_rsi, axis=1)
-    mdf['sell flag'] = mdf.apply(lambda x: x['%K'] < x['%D'], axis=1)  # < 80, axis=1)
+    mdf['rsi'] = rsi(mdf['close'], window=14, fillna=False)
+    mdf['buy flag'] = mdf.apply(lambda x: x['%K'] > x['%D'] > 23 and x['rsi'] < 57, axis=1)
+    mdf['sell flag'] = mdf.apply(lambda x: x['%K'] < x['%D'] < 77, axis=1)
     return mdf
 
 
@@ -162,7 +166,7 @@ def low_frame_indicators(df):
     :return: ldf enriched with atr
     """
     ldf = df.copy()
-    # ldf['atr'] = average_true_range(ldf['high'], ldf['low'], ldf['close'], window=14, fillna=False)
+    ldf['atr'] = average_true_range(ldf['high'], ldf['low'], ldf['close'], window=14, fillna=False)
     return ldf
 
 
@@ -181,7 +185,7 @@ def high_data(frame):
     front_df['time'] = front_df['time'].apply(lambda x: (x * 1000) + 10800000)  # *1000 javascript time + 3hours
     data_list = front_df.values.tolist()
     candle_data = []
-    ema_data = []
+    ema1_data = []
     for i in data_list:
         candle_data.append({
             'x': i[0],
@@ -189,11 +193,11 @@ def high_data(frame):
         })
     for i in data_list:
         if i[8] != 0:
-            ema_data.append({
+            ema1_data.append({
                 'x': i[0],
                 'y': round(i[8], 4)
             })
-    return candle_data, ema_data
+    return candle_data, ema1_data
 
 
 def mid_data(frame):

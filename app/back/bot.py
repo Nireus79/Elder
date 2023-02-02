@@ -9,10 +9,12 @@ from app.back.spring import check, activation
 logging.basicConfig(level=logging.INFO)
 
 condition = None
+bot_mode = None
 crypto_balance = None
 fiat_balance = 0
 limit = None
 stop = None
+pillow = 0
 closing_price = None
 trend = None
 buy_flag = None
@@ -23,7 +25,7 @@ runningLowFrame = None
 high_chart_data = None
 mid_chart_data = None
 low_chart_data = None
-high_ema = None
+high_ema1 = None
 mid_k = None
 mid_d = None
 low_limit = None
@@ -63,10 +65,10 @@ def beeper(cond):
 
 
 def chart_data(high_frame, mid_frame, low_frame):
-    global high_chart_data, high_ema, mid_chart_data, mid_k, mid_d, low_chart_data, low_limit, low_stop
+    global high_chart_data, high_ema1, mid_chart_data, mid_k, mid_d, low_chart_data, low_limit, low_stop
     limit_data = []
     stop_data = []
-    high_candles, ema = high_data(high_frame)
+    high_candles, ema1 = high_data(high_frame)
     mid_candles, k, d = mid_data(mid_frame)
     low_candles = low_data(low_frame)
     for i in low_candles:
@@ -79,7 +81,7 @@ def chart_data(high_frame, mid_frame, low_frame):
             'y': stop
         })
     high_chart_data = high_candles
-    high_ema = ema
+    high_ema1 = ema1
     mid_chart_data = mid_candles
     mid_k = k
     mid_d = d
@@ -137,7 +139,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
     When setting sell order, vol = crypto_balance (fee is calculated by kraken)
     """
     global condition, stop, limit, log, closing_price, runningLowFrame, crypto_balance, fiat_balance, \
-        buy_flag, sell_flag
+        buy_flag, sell_flag, pillow
     beeper('start')
     log = '{} Order management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -147,9 +149,9 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
     low_f = low_frame_indicators(low.get_frame())
     candle_time = low_f.iloc[-1]['time']
     if cond == 'buy':
-        limit = low_f.iloc[-1]['high']
+        limit = low_f.iloc[-1]['high'] + low_f.iloc[-1]['atr']
     elif cond == 'sell':
-        stop = low_f.iloc[-1]['low']
+        stop = low_f.iloc[-1]['low'] - low_f.iloc[-1]['atr']
     closing_price = low_f.iloc[-1]['close']
     log = 'Balance: {} {}. {} {}'.format(crypto_balance, crypto_currency, fiat_balance, fiat_currency)
     logging.info(log)
@@ -169,8 +171,8 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
         buy_flag = mid_f.iloc[-1]['buy flag']
         sell_flag = mid_f.iloc[-1]['sell flag']
         chart_data(high_f, mid_f, low_f)
-        new_limit = low_f.iloc[-1]['high']
-        new_stop = low_f.iloc[-1]['low']
+        new_limit = low_f.iloc[-1]['high'] + low_f.iloc[-1]['atr']
+        new_stop = low_f.iloc[-1]['low'] - low_f.iloc[-1]['atr']
         closing_price = low_f.iloc[-1]['close']
         new_candle_time = low_f.iloc[-1]['time']
         if break_event.is_set():  # thread "kill" by user
@@ -192,7 +194,9 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                         log = tx
                         logging.info(log)
                         beeper(cond)
-                        log = '{} Bought {} at: {}.'.format(time_stamp(time.time()), crypto_currency, closing_price)
+                        pillow = closing_price * 0.955
+                        log = '{} Bought {} at: {} Pillow set to {}.'.format(time_stamp(time.time()), crypto_currency,
+                                                                             closing_price, pillow)
                         trades.append(log + '<br>')
                         stop = None
                         limit = None
@@ -222,7 +226,17 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                 stop = None
                 break
         elif cond == 'sell':
-            if sell_flag:
+            if closing_price < pillow:
+                tx = add_order(mode, cond, crypto_balance, closing_price, crypto_currency, fiat_currency)
+                log = tx
+                logging.info(log)
+                beeper(cond)
+                log = '{} Sold pillow {} at: {}.'.format(time_stamp(time.time()), crypto_currency, closing_price)
+                trades.append(log + '<br>')
+                limit = None
+                stop = None
+                break
+            elif sell_flag:
                 if new_candle_time > candle_time + low.candle:  # wait one candle to close
                     if closing_price < stop:
                         log = '{} order to {} {} {} at {}.' \
@@ -274,7 +288,7 @@ def limit_manager(mode, high, mid, low, cond):
     :param low: The low frame instance, used to set limit/stop-loss borders.
     :param cond: Condition sell/buy
     """
-    global condition, stop, limit, log, closing_price, runningLowFrame, buy_flag, sell_flag
+    global condition, stop, limit, log, closing_price, runningLowFrame, buy_flag, sell_flag, pillow
     beeper('start')
     log = '{} Limit management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -282,8 +296,8 @@ def limit_manager(mode, high, mid, low, cond):
     high_f = high_frame_indicators(high.get_frame())
     mid_f = mid_frame_indicators(mid.get_frame())
     low_f = low_frame_indicators(low.get_frame())
-    limit = low_f.iloc[-1]['high']
-    stop = low_f.iloc[-1]['low']
+    limit = low_f.iloc[-1]['high'] + low_f.iloc[-1]['atr']
+    stop = low_f.iloc[-1]['low'] - low_f.iloc[-1]['atr']
     closing_price = low_f.iloc[-1]['close']
     candle_time = low_f.iloc[-1]['time']
     log = '{} Current price {}. limit: {}. Stop loss: {}'.format(time_stamp(time.time()), closing_price, limit, stop)
@@ -308,8 +322,8 @@ def limit_manager(mode, high, mid, low, cond):
         low_f = low_frame_indicators(low.get_frame())
         buy_flag = mid_f.iloc[-1]['buy flag']
         sell_flag = mid_f.iloc[-1]['sell flag']
-        new_limit = low_f.iloc[-1]['high']
-        new_stop = low_f.iloc[-1]['low']
+        new_limit = low_f.iloc[-1]['high'] + low_f.iloc[-1]['atr']
+        new_stop = low_f.iloc[-1]['low'] - low_f.iloc[-1]['atr']
         closing_price = low_f.iloc[-1]['close']
         chart_data(high_f, mid_f, low_f)
         new_candle_time = low_f.iloc[-1]['time']
@@ -329,7 +343,9 @@ def limit_manager(mode, high, mid, low, cond):
                         if mode == 'simulator':
                             logging.info('')
                             logs.append('<br>')
-                            log = '{} Bought at: {}'.format(time_stamp(time.time()), closing_price)
+                            pillow = closing_price * 0.955
+                            log = '{} Bought at: {}. Pillow set to {}'.format(time_stamp(time.time()), closing_price,
+                                                                              pillow)
                             logging.info(log)
                             logs.append(log + '<br>')
                             trades.append(log + '<br>')
@@ -361,7 +377,16 @@ def limit_manager(mode, high, mid, low, cond):
                 stop = None
                 break
         elif cond == 'sell':
-            if sell_flag:
+            if closing_price < pillow:
+                log = '{} Sold pillow at: {}'.format(time_stamp(time.time()), closing_price)
+                logging.info(log)
+                logs.append(log + '<br>')
+                trades.append(log + '<br>')
+                condition = 'buy'
+                limit = None
+                stop = None
+                break
+            elif sell_flag:
                 if new_candle_time > candle_time + low.candle:  # wait one candle to close
                     if closing_price < stop:
                         log = '{} Closing price under stop loss. Please add sell order' \
@@ -407,27 +432,28 @@ def limit_manager(mode, high, mid, low, cond):
 
 
 def elderbot(mode, crypto_currency, fiat_currency, depth):
-    global condition, log, crypto_balance, fiat_balance, closing_price, \
+    global bot_mode, condition, log, crypto_balance, fiat_balance, closing_price, \
         runningHighFrame, runningMidFrame, runningLowFrame, trend, buy_flag, sell_flag
     licence = True  # check()['license_active']
+    bot_mode = mode
     if licence:
         log = 'Your product licence is active. Thank you for using Hermes.'
         logging.info(log)
         logs.append(log + '<br>')
         if mode == 'simulator':
             condition = 'buy'
-        i1w = Api(crypto_currency, fiat_currency, 10080, depth)
-        i24h = Api(crypto_currency, fiat_currency, 1440, depth)
         i4h = Api(crypto_currency, fiat_currency, 240, depth)
+        i30m = Api(crypto_currency, fiat_currency, 30, depth)
+        i5m = Api(crypto_currency, fiat_currency, 5, depth)
         log = '{} Operation start. Mode is {}.'.format(time_stamp(time.time()), mode)
         logging.info(log)
         logs.append(log + '<br>')
-        hf = i1w
-        mf = i24h
-        lf = i4h
-        runningHighFrame = '1 week'
-        runningMidFrame = '1 day'
-        runningLowFrame = '4 hours'
+        hf = i4h
+        mf = i30m
+        lf = i5m
+        runningHighFrame = '4 hours'
+        runningMidFrame = '30 minutes'
+        runningLowFrame = '5 minutes'
         while True:
             high_frame = high_frame_indicators(hf.get_frame())
             mid_frame = mid_frame_indicators(mf.get_frame())
@@ -518,6 +544,7 @@ def data_feed():
         'logs': logs,
         'trades': trades,
         'condition': condition,
+        'mode': bot_mode,
         'crypto_balance': crypto_balance,
         'fiat_balance': fiat_balance,
         'runningHighFrame': runningHighFrame,
@@ -525,8 +552,8 @@ def data_feed():
         'runningLowFrame': runningLowFrame,
         'high_chart_data': high_chart_data,
         'mid_chart_data': mid_chart_data,
-        'high_ema': high_ema,
-        'mid_ds': mid_k,
+        'high_ema1': high_ema1,
+        'mid_k': mid_k,
         'mid_d': mid_d,
         'low_chart_data': low_chart_data,
         'trend': str(trend),
