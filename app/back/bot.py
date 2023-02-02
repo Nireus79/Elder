@@ -28,6 +28,8 @@ low_chart_data = None
 high_ema1 = None
 mid_k = None
 mid_d = None
+mid_rsi = None
+low_atr = None
 low_limit = None
 low_stop = None
 log = 'Please set control parameters to start.'
@@ -65,12 +67,13 @@ def beeper(cond):
 
 
 def chart_data(high_frame, mid_frame, low_frame):
-    global high_chart_data, high_ema1, mid_chart_data, mid_k, mid_d, low_chart_data, low_limit, low_stop
+    global high_chart_data, high_ema1, mid_chart_data, mid_k, mid_d, mid_rsi,\
+        low_chart_data, low_limit, low_stop, low_atr
     limit_data = []
     stop_data = []
-    high_candles, ema1 = high_data(high_frame)
-    mid_candles, k, d = mid_data(mid_frame)
-    low_candles = low_data(low_frame)
+    high_candles, high_ema1 = high_data(high_frame)
+    mid_candles, mid_k, mid_d, mid_rsi = mid_data(mid_frame)
+    low_candles, low_atr = low_data(low_frame)
     for i in low_candles:
         limit_data.append({
             'x': i['x'],
@@ -81,10 +84,7 @@ def chart_data(high_frame, mid_frame, low_frame):
             'y': stop
         })
     high_chart_data = high_candles
-    high_ema1 = ema1
     mid_chart_data = mid_candles
-    mid_k = k
-    mid_d = d
     low_chart_data = low_candles
     low_limit = limit_data
     low_stop = stop_data
@@ -194,7 +194,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                         log = tx
                         logging.info(log)
                         beeper(cond)
-                        pillow = closing_price * 0.955
+                        pillow = closing_price * 0.965
                         log = '{} Bought {} at: {} Pillow set to {}.'.format(time_stamp(time.time()), crypto_currency,
                                                                              closing_price, pillow)
                         trades.append(log + '<br>')
@@ -343,7 +343,7 @@ def limit_manager(mode, high, mid, low, cond):
                         if mode == 'simulator':
                             logging.info('')
                             logs.append('<br>')
-                            pillow = closing_price * 0.955
+                            pillow = closing_price * 0.965
                             log = '{} Bought at: {}. Pillow set to {}'.format(time_stamp(time.time()), closing_price,
                                                                               pillow)
                             logging.info(log)
@@ -442,15 +442,15 @@ def elderbot(mode, crypto_currency, fiat_currency, depth):
         logs.append(log + '<br>')
         if mode == 'simulator':
             condition = 'buy'
-        i4h = Api(crypto_currency, fiat_currency, 240, depth)
-        i30m = Api(crypto_currency, fiat_currency, 30, depth)
-        i5m = Api(crypto_currency, fiat_currency, 5, depth)
+        i1d = Api(crypto_currency, fiat_currency, 240, depth)
+        i1h = Api(crypto_currency, fiat_currency, 30, depth)
+        i15m = Api(crypto_currency, fiat_currency, 5, depth)
         log = '{} Operation start. Mode is {}.'.format(time_stamp(time.time()), mode)
         logging.info(log)
         logs.append(log + '<br>')
-        hf = i4h
-        mf = i30m
-        lf = i5m
+        hf = i1d
+        mf = i1h
+        lf = i15m
         runningHighFrame = '4 hours'
         runningMidFrame = '30 minutes'
         runningLowFrame = '5 minutes'
@@ -555,11 +555,13 @@ def data_feed():
         'high_ema1': high_ema1,
         'mid_k': mid_k,
         'mid_d': mid_d,
+        'mid_rsi': mid_rsi,
         'low_chart_data': low_chart_data,
         'trend': str(trend),
         'buy_flag': str(buy_flag),
         'sell_flag': str(sell_flag),
         'price': closing_price,
         'low_limit': low_limit,
-        'low_stop': low_stop
+        'low_stop': low_stop,
+        'low_atr': low_atr
     }

@@ -12,6 +12,10 @@ var options = {
           name: 'Stochastic %D: ',
           type: 'line',
           data: []
+          },{
+          name: 'RSI: ',
+          type: 'line',
+          data: []
           }
           ],
           chart: {
@@ -59,6 +63,8 @@ function update_values() {
               name: 'Stochastic %K: ' + data_update.mid_k
               },{
               name: 'Stochastic %D: ' + data_update.mid_d
+              },{
+              name: 'RSI: ' + data_update.mid_rsi
               }
             ])
         }

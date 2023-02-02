@@ -12,6 +12,10 @@ var options = {
           name: 'Stop loss: ',
           type: 'line',
           data: []
+        },{
+          name: 'ATR: ',
+          type: 'line',
+          data: []
         }
         ],
         chart: {
@@ -63,6 +67,8 @@ function update_values() {
             },{
               name: 'Stop loss: ' + data_update.low_stop[data_update.low_stop.length - 1]['y'],
               data: data_update.low_stop.slice(-10)
+              },{
+              name: 'ATR: ' + data_update.low_atr
               }
             ]);
         }
