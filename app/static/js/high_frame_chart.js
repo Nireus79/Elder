@@ -9,7 +9,7 @@ var options = {
           type: 'line',
           data: []
         },{
-          name: 'EMA8: ',
+          name: 'EMA20: ',
           type: 'line',
           data: []
         }
@@ -60,7 +60,7 @@ function update_values() {
             },{
               name: 'Closing price: ' + data_update.price
             },{
-              name: 'EMA8: ' + data_update.high_ema1[data_update.high_ema1.length - 1]['y'],
+              name: 'EMA20: ' + data_update.high_ema1[data_update.high_ema1.length - 1]['y'],
               data: data_update.high_ema1.slice(-20)
             }
             ]);
