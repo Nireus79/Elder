@@ -14,7 +14,7 @@ crypto_balance = None
 fiat_balance = 0
 limit = None
 stop = None
-pillow = 0
+# pillow = 0
 closing_price = None
 trend = None
 buy_flag = None
@@ -194,7 +194,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                         log = tx
                         logging.info(log)
                         beeper(cond)
-                        pillow = closing_price * 0.965
+                        #  pillow = closing_price * 0.965
                         log = '{} Bought {} at: {} Pillow set to {}.'.format(time_stamp(time.time()), crypto_currency,
                                                                              closing_price, pillow)
                         trades.append(log + '<br>')
@@ -226,17 +226,17 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                 stop = None
                 break
         elif cond == 'sell':
-            if closing_price < pillow:
-                tx = add_order(mode, cond, crypto_balance, closing_price, crypto_currency, fiat_currency)
-                log = tx
-                logging.info(log)
-                beeper(cond)
-                log = '{} Sold pillow {} at: {}.'.format(time_stamp(time.time()), crypto_currency, closing_price)
-                trades.append(log + '<br>')
-                limit = None
-                stop = None
-                break
-            elif sell_flag:
+            # if closing_price < pillow:
+            #     tx = add_order(mode, cond, crypto_balance, closing_price, crypto_currency, fiat_currency)
+            #     log = tx
+            #     logging.info(log)
+            #     beeper(cond)
+            #     log = '{} Sold pillow {} at: {}.'.format(time_stamp(time.time()), crypto_currency, closing_price)
+            #     trades.append(log + '<br>')
+            #     limit = None
+            #     stop = None
+            #     break
+            if sell_flag:
                 if new_candle_time > candle_time + low.candle:  # wait one candle to close
                     if closing_price < stop:
                         log = '{} order to {} {} {} at {}.' \
@@ -343,7 +343,7 @@ def limit_manager(mode, high, mid, low, cond):
                         if mode == 'simulator':
                             logging.info('')
                             logs.append('<br>')
-                            pillow = closing_price * 0.965
+                            # pillow = closing_price * 0.965
                             log = '{} Bought at: {}. Pillow set to {}'.format(time_stamp(time.time()), closing_price,
                                                                               pillow)
                             logging.info(log)
@@ -377,16 +377,16 @@ def limit_manager(mode, high, mid, low, cond):
                 stop = None
                 break
         elif cond == 'sell':
-            if closing_price < pillow:
-                log = '{} Sold pillow at: {}'.format(time_stamp(time.time()), closing_price)
-                logging.info(log)
-                logs.append(log + '<br>')
-                trades.append(log + '<br>')
-                condition = 'buy'
-                limit = None
-                stop = None
-                break
-            elif sell_flag:
+            # if closing_price < pillow:
+            #     log = '{} Sold pillow at: {}'.format(time_stamp(time.time()), closing_price)
+            #     logging.info(log)
+            #     logs.append(log + '<br>')
+            #     trades.append(log + '<br>')
+            #     condition = 'buy'
+            #     limit = None
+            #     stop = None
+            #     break
+            if sell_flag:
                 if new_candle_time > candle_time + low.candle:  # wait one candle to close
                     if closing_price < stop:
                         log = '{} Closing price under stop loss. Please add sell order' \
