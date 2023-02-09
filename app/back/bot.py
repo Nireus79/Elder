@@ -67,7 +67,7 @@ def beeper(cond):
 
 
 def chart_data(high_frame, mid_frame, low_frame):
-    global high_chart_data, high_ema1, mid_chart_data, mid_k, mid_d, mid_rsi,\
+    global high_chart_data, high_ema1, mid_chart_data, mid_k, mid_d, mid_rsi, \
         low_chart_data, low_limit, low_stop, low_atr
     limit_data = []
     stop_data = []
@@ -139,7 +139,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
     When setting sell order, vol = crypto_balance (fee is calculated by kraken)
     """
     global condition, stop, limit, log, closing_price, runningLowFrame, crypto_balance, fiat_balance, \
-        buy_flag, sell_flag, pillow
+        buy_flag, sell_flag  # , pillow
     beeper('start')
     log = '{} Order management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -195,8 +195,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                         logging.info(log)
                         beeper(cond)
                         #  pillow = closing_price * 0.965
-                        log = '{} Bought {} at: {} Pillow set to {}.'.format(time_stamp(time.time()), crypto_currency,
-                                                                             closing_price, pillow)
+                        log = '{} Bought {} at:.'.format(time_stamp(time.time()), crypto_currency, closing_price)
                         trades.append(log + '<br>')
                         stop = None
                         limit = None
@@ -288,7 +287,7 @@ def limit_manager(mode, high, mid, low, cond):
     :param low: The low frame instance, used to set limit/stop-loss borders.
     :param cond: Condition sell/buy
     """
-    global condition, stop, limit, log, closing_price, runningLowFrame, buy_flag, sell_flag, pillow
+    global condition, stop, limit, log, closing_price, runningLowFrame, buy_flag, sell_flag  # , pillow
     beeper('start')
     log = '{} Limit management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -344,8 +343,7 @@ def limit_manager(mode, high, mid, low, cond):
                             logging.info('')
                             logs.append('<br>')
                             # pillow = closing_price * 0.965
-                            log = '{} Bought at: {}. Pillow set to {}'.format(time_stamp(time.time()), closing_price,
-                                                                              pillow)
+                            log = '{} Bought at: {}.'.format(time_stamp(time.time()), closing_price)
                             logging.info(log)
                             logs.append(log + '<br>')
                             trades.append(log + '<br>')
