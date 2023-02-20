@@ -134,14 +134,15 @@ def high_frame_indicators(df):
     :return: hdf enriched with technical indicators and flags
     """
     hdf = df.copy()
-    hdf['EMA1'] = hdf['close'].rolling(20).mean()
+    hdf['EMA1'] = hdf['close'].rolling(28).mean()
     hdf['trend'] = hdf.apply(lambda x: x['close'] > x['EMA1'], axis=1)
     return hdf
 
 
 def mid_frame_indicators(df):
-    upper_bound = 41
-    lower_bound = 24
+    upper_bound = 37
+    lower_bound = 11
+    rs = 70
     """
     Takes a pandas dataframe provided by Kraken rest api containing ohlc data,
     adding columns to each row with the technical indicators of ohlc (stochastic %k, stochastic%d, rsi, %atr),
@@ -153,7 +154,7 @@ def mid_frame_indicators(df):
     mdf['%K'] = stoch(mdf['high'], mdf['low'], mdf['close'], window=14, smooth_window=3, fillna=False)
     mdf['%D'] = mdf['%K'].rolling(3).mean()
     mdf['rsi'] = rsi(mdf['close'], window=14, fillna=False)
-    mdf['buy flag'] = mdf.apply(lambda x: x['%K'] > x['%D'] > lower_bound and x['rsi'] < 55, axis=1)
+    mdf['buy flag'] = mdf.apply(lambda x: x['%K'] > x['%D'] > lower_bound and x['rsi'] < rs, axis=1)
     mdf['sell flag'] = mdf.apply(lambda x: x['%K'] < x['%D'] < upper_bound, axis=1)
     return mdf
 
