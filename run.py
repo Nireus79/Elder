@@ -2,6 +2,8 @@ import os
 import sys
 from app import app
 import webbrowser
+import warnings
+warnings.simplefilter("ignore", category=FutureWarning)
 
 if sys.executable.endswith('pythonw.exe'):
     sys.stdout = open(os.devnull, 'w')
