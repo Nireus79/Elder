@@ -14,7 +14,7 @@ crypto_balance = None
 fiat_balance = 0
 limit = None
 stop = None
-# pillow = 0
+pillow = 0
 closing_price = None
 trend = None
 buy_flag = None
@@ -139,7 +139,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
     When setting sell order, vol = crypto_balance (fee is calculated by kraken)
     """
     global condition, stop, limit, log, closing_price, runningLowFrame, crypto_balance, fiat_balance, \
-        buy_flag, sell_flag  # , pillow
+        buy_flag, sell_flag, pillow
     beeper('start')
     log = '{} Order management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -194,7 +194,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                         log = tx
                         logging.info(log)
                         beeper(cond)
-                        #  pillow = closing_price * 0.965
+                        pillow = closing_price * 0.975
                         log = '{} Bought {} at:.'.format(time_stamp(time.time()), crypto_currency, closing_price)
                         trades.append(log + '<br>')
                         stop = None
@@ -225,17 +225,18 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                 stop = None
                 break
         elif cond == 'sell':
-            # if closing_price < pillow:
-            #     tx = add_order(mode, cond, crypto_balance, closing_price, crypto_currency, fiat_currency)
-            #     log = tx
-            #     logging.info(log)
-            #     beeper(cond)
-            #     log = '{} Sold pillow {} at: {}.'.format(time_stamp(time.time()), crypto_currency, closing_price)
-            #     trades.append(log + '<br>')
-            #     limit = None
-            #     stop = None
-            #     break
-            if sell_flag:
+            if closing_price < pillow:
+                tx = add_order(mode, cond, crypto_balance, closing_price, crypto_currency, fiat_currency)
+                log = tx
+                logging.info(log)
+                beeper(cond)
+                log = '{} Sold pillow {} at: {}.'.format(time_stamp(time.time()), crypto_currency, closing_price)
+                trades.append(log + '<br>')
+                limit = None
+                stop = None
+                pillow = 0
+                break
+            elif sell_flag:
                 if new_candle_time > candle_time + low.candle:  # wait one candle to close
                     if closing_price < stop:
                         log = '{} order to {} {} {} at {}.' \
@@ -249,6 +250,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                         trades.append(log + '<br>')
                         limit = None
                         stop = None
+                        pillow = 0
                         break
                     else:
                         candle_time = low_f.iloc[-2]['time']
@@ -287,7 +289,7 @@ def limit_manager(mode, high, mid, low, cond):
     :param low: The low frame instance, used to set limit/stop-loss borders.
     :param cond: Condition sell/buy
     """
-    global condition, stop, limit, log, closing_price, runningLowFrame, buy_flag, sell_flag  # , pillow
+    global condition, stop, limit, log, closing_price, runningLowFrame, buy_flag, sell_flag, pillow
     beeper('start')
     log = '{} Limit management. Setting {}min low frame {} limits.'.format(time_stamp(time.time()), low.interval, cond)
     logging.info(log)
@@ -342,7 +344,7 @@ def limit_manager(mode, high, mid, low, cond):
                         if mode == 'simulator':
                             logging.info('')
                             logs.append('<br>')
-                            # pillow = closing_price * 0.965
+                            pillow = closing_price * 0.975
                             log = '{} Bought at: {}.'.format(time_stamp(time.time()), closing_price)
                             logging.info(log)
                             logs.append(log + '<br>')
@@ -375,16 +377,17 @@ def limit_manager(mode, high, mid, low, cond):
                 stop = None
                 break
         elif cond == 'sell':
-            # if closing_price < pillow:
-            #     log = '{} Sold pillow at: {}'.format(time_stamp(time.time()), closing_price)
-            #     logging.info(log)
-            #     logs.append(log + '<br>')
-            #     trades.append(log + '<br>')
-            #     condition = 'buy'
-            #     limit = None
-            #     stop = None
-            #     break
-            if sell_flag:
+            if closing_price < pillow:
+                log = '{} Sold pillow at: {}'.format(time_stamp(time.time()), closing_price)
+                logging.info(log)
+                logs.append(log + '<br>')
+                trades.append(log + '<br>')
+                condition = 'buy'
+                limit = None
+                stop = None
+                pillow = 0
+                break
+            elif sell_flag:
                 if new_candle_time > candle_time + low.candle:  # wait one candle to close
                     if closing_price < stop:
                         log = '{} Closing price under stop loss. Please add sell order' \
@@ -402,6 +405,7 @@ def limit_manager(mode, high, mid, low, cond):
                             condition = 'buy'
                         limit = None
                         stop = None
+                        pillow = 0
                         break
                     else:
                         candle_time = low_f.iloc[-2]['time']
@@ -441,17 +445,17 @@ def elderbot(mode, crypto_currency, fiat_currency, depth):
         if mode == 'simulator':
             condition = 'buy'
         i1d = Api(crypto_currency, fiat_currency, 1440, depth)
-        i1h = Api(crypto_currency, fiat_currency, 60, depth)
-        i15m = Api(crypto_currency, fiat_currency, 15, depth)
+        i4h = Api(crypto_currency, fiat_currency, 240, depth)
+        i30m = Api(crypto_currency, fiat_currency, 30, depth)
         log = '{} Operation start. Mode is {}.'.format(time_stamp(time.time()), mode)
         logging.info(log)
         logs.append(log + '<br>')
         hf = i1d
-        mf = i1h
-        lf = i15m
+        mf = i4h
+        lf = i30m
         runningHighFrame = '1 Day'
-        runningMidFrame = '1 Hour'
-        runningLowFrame = '15 minutes'
+        runningMidFrame = '4 Hours'
+        runningLowFrame = '30 minutes'
         while True:
             high_frame = high_frame_indicators(hf.get_frame())
             mid_frame = mid_frame_indicators(mf.get_frame())
