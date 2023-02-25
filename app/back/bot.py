@@ -445,13 +445,13 @@ def elderbot(mode, crypto_currency, fiat_currency, depth):
         if mode == 'simulator':
             condition = 'buy'
         i1d = Api(crypto_currency, fiat_currency, 1440, depth)
-        i15m = Api(crypto_currency, fiat_currency, 60, depth)
+        i1h = Api(crypto_currency, fiat_currency, 60, depth)
         i15m = Api(crypto_currency, fiat_currency, 15, depth)
         log = '{} Operation start. Mode is {}.'.format(time_stamp(time.time()), mode)
         logging.info(log)
         logs.append(log + '<br>')
         hf = i1d
-        mf = i15m
+        mf = i1h
         lf = i15m
         runningHighFrame = '1 Day'
         runningMidFrame = '1 Hour'
