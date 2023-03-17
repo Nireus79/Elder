@@ -497,7 +497,7 @@ def elderbot(mode, crypto_currency, fiat_currency, depth):
                         time.sleep(60)
                 else:
                     log = '{} {} trend is {}. No buying opportunity. Wait 1 min.' \
-                        .format(time_stamp(time.time()), runningHighFrame, buy_flag)
+                        .format(time_stamp(time.time()), runningHighFrame, trend)
                     logging.info(log)
                     logs.append(log + '<br>')
                     time.sleep(60)
