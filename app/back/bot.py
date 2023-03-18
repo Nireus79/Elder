@@ -195,7 +195,7 @@ def order_manager(mode, high, mid, low, cond, crypto_currency, fiat_currency):
                         logging.info(log)
                         beeper(cond)
                         pillow = closing_price * 0.975
-                        log = '{} Bought {} at:.'.format(time_stamp(time.time()), crypto_currency, closing_price)
+                        log = '{} Bought {} at: {}.'.format(time_stamp(time.time()), crypto_currency, closing_price)
                         trades.append(log + '<br>')
                         stop = None
                         limit = None
